@@ -1,0 +1,16 @@
+.PHONY: build test bench lint fmt
+
+build:
+	go build ./...
+
+test:
+	go test ./...
+
+bench:
+	go test -bench=. -benchmem ./...
+
+lint:
+	golangci-lint run ./...
+
+fmt:
+	go fmt ./...

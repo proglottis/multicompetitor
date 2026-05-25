@@ -1,0 +1,11 @@
+# Binaries and test binaries
+*.exe
+*.exe~
+*.test
+
+# Profile and coverage output
+*.prof
+*.out
+
+# Local database
+*.db
