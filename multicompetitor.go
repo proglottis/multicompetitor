@@ -5,20 +5,6 @@
 // Each competitor's ability evolves over time as a Gaussian random walk.
 // Contest outcomes are modelled as rank-ordered logit (Plackett-Luce);
 // ties are handled via the Breslow-Crowley approximation.
-//
-// Typical usage for an ongoing rating system:
-//
-//	var priors map[string]multicompetitor.PeriodRating // nil on first call
-//	for _, period := range periods {
-//	    var contest []multicompetitor.Contest[string]
-//	    for _, result := range period.Results {
-//	        contest = append(contest, multicompetitor.Contest[string]{ID: result.ID, Rank: result.Rank})
-//	    }
-//	    priors = multicompetitor.RatePeriod(priors, tau, sigma0, contest)
-//	}
-//
-// The returned priors from each RatePeriod call are the per-period posteriors.
-// Accumulate them per competitor and pass to Smooth for retrospective analysis.
 package multicompetitor
 
 import "math"

@@ -16,7 +16,7 @@ import (
 // warm up the filter only. For periods [valStart, T-1), the posterior means
 // at period t are correlated with the actual rankings in period t+1, weighted
 // by (m-1) where m is the number of competitors in the contest.
-// A typical choice is len(periods)-N for the final N periods.
+// For example, pass len(periods)-3 to validate on the final 3 periods.
 //
 // Returns ρ_W in [-1, 1]; higher is better. Returns 0 if there are no
 // scoreable periods.

@@ -23,40 +23,6 @@ once a run of results is complete. Ties are handled natively.
 go get github.com/proglottis/multicompetitor
 ```
 
-## Quick example
-
-```go
-const (
-    tau    = 0.1 // per-race ability drift
-    sigma0 = 1.5 // initial uncertainty for new competitors
-)
-
-// history accumulates each competitor's per-period posteriors for smoothing.
-history := make(map[string][]multicompetitor.PeriodRating)
-
-var priors map[string]multicompetitor.PeriodRating
-for _, race := range season {
-    var contest []multicompetitor.Contest[string]
-    for _, r := range race.Results {
-        contest = append(contest, multicompetitor.Contest[string]{
-            ID:   r.DriverID,
-            Rank: r.FinishingPosition,
-        })
-    }
-    priors = multicompetitor.RatePeriod(priors, tau, sigma0, contest)
-    for id, pr := range priors {
-        history[id] = append(history[id], pr)
-    }
-}
-
-// Smooth one competitor's full history retrospectively:
-smoothed := multicompetitor.Smooth(history["hamilton"], tau)
-```
-
-New competitors are initialised automatically on first appearance. A
-competitor who misses a period has their uncertainty widened — the model
-acknowledges that their ability may have changed while they were away.
-
 ## Tuning
 
 | Parameter | What it controls | Starting point |
