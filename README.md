@@ -1,5 +1,7 @@
 # multicompetitor
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/proglottis/multicompetitor.svg)](https://pkg.go.dev/github.com/proglottis/multicompetitor)
+
 Track how competitor ability changes across a series of ranked contests —
 races, tournaments, seasons, or any setting where multiple participants finish
 in order.
@@ -28,8 +30,15 @@ No external dependencies.
 ## Quick example
 
 ```go
-var priors map[string]multicompetitor.PeriodRating
+const (
+    tau    = 0.1 // per-race ability drift
+    sigma0 = 1.5 // initial uncertainty for new competitors
+)
 
+// history accumulates each competitor's per-period posteriors for smoothing.
+history := make(map[string][]multicompetitor.PeriodRating)
+
+var priors map[string]multicompetitor.PeriodRating
 for _, race := range season {
     var contest []multicompetitor.Contest[string]
     for _, r := range race.Results {
@@ -39,35 +48,18 @@ for _, race := range season {
         })
     }
     priors = multicompetitor.RatePeriod(priors, tau, sigma0, contest)
-    // store a copy of priors per competitor if you want to smooth later
+    for id, pr := range priors {
+        history[id] = append(history[id], pr)
+    }
 }
 
-// Retrospective smoothing for one competitor's career:
-smoothed := multicompetitor.Smooth(driverHistory, tau)
+// Smooth one competitor's full history retrospectively:
+smoothed := multicompetitor.Smooth(history["hamilton"], tau)
 ```
 
 New competitors are initialised automatically on first appearance. A
 competitor who misses a period has their uncertainty widened — the model
 acknowledges that their ability may have changed while they were away.
-
-## API
-
-```go
-func RatePeriod[K comparable](priors map[K]PeriodRating, tau, sigma0 float64, contests ...[]Contest[K]) map[K]PeriodRating
-func Smooth(history []PeriodRating, tau float64) []PeriodRating
-
-type PeriodRating struct {
-    Mu    float64 // ability estimate (mean)
-    Sigma float64 // uncertainty (std dev)
-}
-
-type Contest[K comparable] struct {
-    ID   K
-    Rank int // 1 = first; equal values are a tie
-}
-```
-
-Full godoc at [pkg.go.dev/github.com/proglottis/multicompetitor](https://pkg.go.dev/github.com/proglottis/multicompetitor).
 
 ## Tuning
 
