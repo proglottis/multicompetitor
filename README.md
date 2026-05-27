@@ -16,8 +16,6 @@ once a run of results is complete. Ties are handled natively.
   returns updated ratings ready to store and display.
 - **Retrospective analysis** — smooth a competitor's full history after the
   season ends to get sharper estimates of when they peaked.
-- **Flexible identifiers** — competitor IDs can be strings, integers, UUIDs,
-  or any comparable Go value.
 
 ## Installation
 
