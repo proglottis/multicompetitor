@@ -21,6 +21,7 @@ func cmdUpdate(db *sql.DB, args []string) {
 	to := fs.Int("to", currentYear, "last season to fetch")
 	tau := fs.Float64("tau", 0.1, "per-race innovation std dev")
 	sigma0 := fs.Float64("sigma0", 1.5, "initial rating uncertainty")
+	recompute := fs.Bool("recompute", false, "clear stored posteriors and recompute all ratings from scratch")
 	_ = fs.Parse(args) // ExitOnError: calls os.Exit on bad input, never returns an error
 
 	storedSeas, err := storedSeasons(db)
@@ -54,11 +55,28 @@ func cmdUpdate(db *sql.DB, args []string) {
 		}
 	}
 
+	if *recompute {
+		tx, err := db.Begin()
+		if err != nil {
+			fatalf("begin recompute tx: %v", err)
+		}
+		for _, tbl := range []string{"driver_posteriors", "team_posteriors", "driver_smoothed", "team_smoothed"} {
+			if _, err := tx.Exec("DELETE FROM " + tbl); err != nil {
+				_ = tx.Rollback()
+				fatalf("clear %s: %v", tbl, err)
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			fatalf("commit recompute clear: %v", err)
+		}
+		_, _ = fmt.Fprintln(os.Stderr, "cleared stored posteriors; recomputing from scratch...")
+	}
+
 	lastSmoothed, err := latestSmoothedPeriod(db)
 	if err != nil {
 		fatalf("check smoothed: %v", err)
 	}
-	if novelCount == 0 && lastSmoothed >= 0 {
+	if novelCount == 0 && lastSmoothed >= 0 && !*recompute {
 		_, _ = fmt.Fprintln(os.Stderr, "no new races; ratings up to date")
 		return
 	}

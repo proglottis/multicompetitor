@@ -274,3 +274,74 @@ func BenchmarkSmooth_500Periods(b *testing.B) {
 		_ = multicompetitor.Smooth(history, 0.1)
 	}
 }
+
+// makePeriods builds a [][][]Contest slice for Score tests.
+// Each inner call is one contest (one period = one race).
+func makePeriods(contestsPerPeriod ...[]multicompetitor.Contest[string]) [][][]multicompetitor.Contest[string] {
+	out := make([][][]multicompetitor.Contest[string], len(contestsPerPeriod))
+	for i, c := range contestsPerPeriod {
+		out[i] = [][]multicompetitor.Contest[string]{c}
+	}
+	return out
+}
+
+func TestScore_EmptyPeriods(t *testing.T) {
+	s := multicompetitor.Score[string](nil, 0.1, 1.5, 0, nil)
+	if s != 0 {
+		t.Errorf("Score(empty) = %v, want 0", s)
+	}
+}
+
+func TestScore_ValStartPastEnd(t *testing.T) {
+	periods := makePeriods(
+		contests(multicompetitor.Contest[string]{ID: "a", Rank: 1}, multicompetitor.Contest[string]{ID: "b", Rank: 2}),
+	)
+	s := multicompetitor.Score[string](nil, 0.1, 1.5, 1, periods) // valStart >= T-1
+	if s != 0 {
+		t.Errorf("Score with no validation periods = %v, want 0", s)
+	}
+}
+
+func TestScore_ConsistentWinnerPositive(t *testing.T) {
+	// r1 always wins, r2 always loses. After warm-up, r1 should have higher mu,
+	// and Score should be positive.
+	race := contests(
+		multicompetitor.Contest[string]{ID: "r1", Rank: 1},
+		multicompetitor.Contest[string]{ID: "r2", Rank: 2},
+	)
+	// 5 periods, validate on last 3.
+	periods := makePeriods(race, race, race, race, race)
+	s := multicompetitor.Score[string](nil, 0.3, 1.5, 2, periods)
+	if s <= 0 {
+		t.Errorf("Score for consistent winner = %v, want > 0", s)
+	}
+}
+
+func TestScore_InRange(t *testing.T) {
+	race := contests(
+		multicompetitor.Contest[string]{ID: "r1", Rank: 1},
+		multicompetitor.Contest[string]{ID: "r2", Rank: 2},
+	)
+	periods := makePeriods(race, race, race, race, race)
+	s := multicompetitor.Score[string](nil, 0.3, 1.5, 2, periods)
+	if s < -1 || s > 1+1e-9 {
+		t.Errorf("Score = %v, want in [-1, 1]", s)
+	}
+}
+
+func TestScore_ConsistentConvergesToOne(t *testing.T) {
+	// After sufficient warm-up, a perfect predictor should score 1.0.
+	race := contests(
+		multicompetitor.Contest[string]{ID: "r1", Rank: 1},
+		multicompetitor.Contest[string]{ID: "r2", Rank: 2},
+		multicompetitor.Contest[string]{ID: "r3", Rank: 3},
+	)
+	var periods [][][]multicompetitor.Contest[string]
+	for range 10 {
+		periods = append(periods, [][]multicompetitor.Contest[string]{race})
+	}
+	s := multicompetitor.Score[string](nil, 0.3, 1.5, 7, periods)
+	if math.Abs(s-1.0) > 1e-9 {
+		t.Errorf("fully warmed-up consistent model score = %v, want 1.0", s)
+	}
+}

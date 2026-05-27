@@ -23,8 +23,6 @@ once a run of results is complete. Ties are handled natively.
 go get github.com/proglottis/multicompetitor
 ```
 
-No external dependencies.
-
 ## Quick example
 
 ```go
@@ -66,12 +64,17 @@ acknowledges that their ability may have changed while they were away.
 | `tau` | How quickly ability can change between periods. Lower is more stable; higher reacts faster to recent form. | `0.1` per race |
 | `sigma0` | How uncertain you are about a new competitor. Wider priors converge more slowly but avoid overreacting to early results. | `1.5` |
 
+Use `Score` to evaluate parameters against held-out data, and `cmd/f1/optimize.go` for an
+example of driving Nelder-Mead over `(τ, σ₀)` with `gonum/optimize`. For F1 results
+2000–2026, the optimised values are τ=0.1058 and σ₀=1.3463 (ρ_W=0.685 on the final 3 seasons).
+
 ## F1 driver ratings 2000–2026
 
 ![F1 Driver Ratings](docs/ratings.svg)
 
 Smoothed conservative estimates (μ − 2σ) for the top 20 drivers by final
 rating, produced by `cmd/f1/` using results from the Jolpica F1 API.
+Parameters optimised via `f1 optimize` against the 2023–2025 validation seasons.
 
 ## How it works
 
@@ -81,3 +84,6 @@ Ability is modelled as a Gaussian random walk; contest outcomes follow a
 rank-ordered logit (Plackett-Luce) model with the Breslow-Crowley
 approximation for ties. The per-period posterior mode is found via
 Newton-Raphson — a Laplace approximation rather than full Bayesian inference.
+
+`Score` implements the weighted Spearman rank correlation (Equation 22) used
+in the paper to select τ and σ₀.

@@ -73,6 +73,8 @@ func main() {
 		cmdTeams(db, rest)
 	case "svg":
 		cmdSVG(db, rest)
+	case "optimize":
+		cmdOptimize(db, rest)
 	default:
 		fatalf("unknown command %q\n\nRun 'f1 -db <path> <command> -help' for usage.", cmd)
 	}
@@ -82,10 +84,11 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `f1 — F1 driver and team ratings
 
 Usage:
-  f1 -db <path> update  [-from YEAR] [-to YEAR]     fetch novel races + compute ratings
-  f1 -db <path> drivers [-n 20]                    print driver ratings table
-  f1 -db <path> teams                              print team ratings table
-  f1 -db <path> svg     [-out ratings.svg] [-n 20] [-teams] write SVG chart`)
+  f1 -db <path> update   [-from YEAR] [-to YEAR] [-tau T] [-sigma0 S] [-recompute]
+  f1 -db <path> drivers  [-n 20]
+  f1 -db <path> teams
+  f1 -db <path> svg      [-out ratings.svg] [-n 20] [-teams]
+  f1 -db <path> optimize [-val N]           find optimal tau and sigma0 (N validation seasons, default 3)`)
 	os.Exit(1)
 }
 
