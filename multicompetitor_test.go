@@ -1,7 +1,9 @@
 package multicompetitor_test
 
 import (
+	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -344,4 +346,109 @@ func TestScore_ConsistentConvergesToOne(t *testing.T) {
 	if math.Abs(s-1.0) > 1e-9 {
 		t.Errorf("fully warmed-up consistent model score = %v, want 1.0", s)
 	}
+}
+
+// rounds is the shared scenario used by ExampleRatePeriod and ExampleSmooth:
+// five weeks of a fictional time-trial with ties, an absence, and a position swap.
+var rounds = [][]multicompetitor.Contest[string]{
+	// Week 1: Alice wins; Charlie and Diana tie for last.
+	{
+		{ID: "Alice", Rank: 1},
+		{ID: "Bob", Rank: 2},
+		{ID: "Charlie", Rank: 3},
+		{ID: "Diana", Rank: 3},
+	},
+	// Week 2: Bob edges Alice.
+	{
+		{ID: "Bob", Rank: 1},
+		{ID: "Alice", Rank: 2},
+		{ID: "Charlie", Rank: 3},
+		{ID: "Diana", Rank: 4},
+	},
+	// Week 3: Diana absent.
+	{
+		{ID: "Alice", Rank: 1},
+		{ID: "Bob", Rank: 2},
+		{ID: "Charlie", Rank: 3},
+	},
+	// Week 4: Charlie beats Bob.
+	{
+		{ID: "Alice", Rank: 1},
+		{ID: "Charlie", Rank: 2},
+		{ID: "Bob", Rank: 3},
+		{ID: "Diana", Rank: 4},
+	},
+	// Week 5: back to form.
+	{
+		{ID: "Alice", Rank: 1},
+		{ID: "Bob", Rank: 2},
+		{ID: "Charlie", Rank: 3},
+		{ID: "Diana", Rank: 4},
+	},
+}
+
+func ExampleRatePeriod() {
+	const tau, sigma0 = 0.3, 1.5
+
+	var priors map[string]multicompetitor.PeriodRating
+	for _, round := range rounds {
+		priors = multicompetitor.RatePeriod(priors, tau, sigma0, round)
+	}
+
+	type result struct {
+		id string
+		mu float64
+	}
+	var results []result
+	for id, pr := range priors {
+		results = append(results, result{id: id, mu: pr.Mu})
+	}
+	slices.SortFunc(results, func(a, b result) int {
+		if a.mu > b.mu {
+			return -1
+		}
+		if a.mu < b.mu {
+			return 1
+		}
+		return 0
+	})
+
+	fmt.Println("Ratings after 5 rounds (μ):")
+	for _, r := range results {
+		fmt.Printf("  %-8s %+.2f\n", r.id, r.mu)
+	}
+
+	// Output:
+	// Ratings after 5 rounds (μ):
+	//   Alice    +1.78
+	//   Bob      +0.37
+	//   Charlie  -0.46
+	//   Diana    -1.94
+}
+
+func ExampleSmooth() {
+	const tau, sigma0 = 0.3, 1.5
+
+	// Collect Alice's per-round filter posteriors.
+	var aliceHistory []multicompetitor.PeriodRating
+	var priors map[string]multicompetitor.PeriodRating
+	for _, round := range rounds {
+		priors = multicompetitor.RatePeriod(priors, tau, sigma0, round)
+		aliceHistory = append(aliceHistory, priors["Alice"])
+	}
+
+	smoothed := multicompetitor.Smooth(aliceHistory, tau)
+
+	// Round 3 is an interior period: the smoother can revise it using rounds 4–5.
+	const interior = 2 // zero-based index for round 3
+	f := aliceHistory[interior]
+	s := smoothed[interior]
+	fmt.Printf("Alice at round 3 (of 5):\n")
+	fmt.Printf("  filtered:  μ=%+.2f  σ=%.2f\n", f.Mu, f.Sigma)
+	fmt.Printf("  smoothed:  μ=%+.2f  σ=%.2f\n", s.Mu, s.Sigma)
+
+	// Output:
+	// Alice at round 3 (of 5):
+	//   filtered:  μ=+1.26  σ=0.90
+	//   smoothed:  μ=+1.70  σ=0.78
 }
