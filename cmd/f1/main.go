@@ -2,20 +2,12 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strings"
 )
 
 // Points awarded for positions 1–10 in modern F1 scoring.
 var f1Points = [10]int{25, 18, 15, 12, 10, 8, 6, 4, 2, 1}
-
-// Glicko-2 display scale: 400/ln(10). Maps μ=0 → 1500, one μ-unit ≈ 174 pts.
-const glickoScale = 173.7178
-
-func toRating(mu float64) int { return int(math.Round(glickoScale*mu + 1500)) }
-func toRD(sigma float64) int  { return int(math.Round(glickoScale * sigma)) }
-func toDelta(dmu float64) int { return int(math.Round(glickoScale * dmu)) }
 
 func main() {
 	if len(os.Args) < 2 {

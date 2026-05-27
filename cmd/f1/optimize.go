@@ -75,6 +75,5 @@ func cmdOptimize(db *sql.DB, args []string) {
 	tau := math.Exp(result.X[0])
 	sigma0 := math.Exp(result.X[1])
 	rhoW := -result.F
-	fmt.Printf("tau=%.4f (~%d RD/race)  sigma0=%.4f (~%d RD initial)  ρ_W=%.4f\n",
-		tau, toRD(tau), sigma0, toRD(sigma0), rhoW)
+	fmt.Printf("tau=%.4f  sigma0=%.4f  ρ_W=%.4f\n", tau, sigma0, rhoW)
 }

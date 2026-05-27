@@ -78,7 +78,7 @@ func cmdSVG(db *sql.DB, args []string) {
 			byName[nameByID[id]] = hist
 		}
 		histories = byName
-		title = fmt.Sprintf("%d–%d F1 Team Ratings — Rating − 2×RD smoothed", fromYear, toYear)
+		title = fmt.Sprintf("%d–%d F1 Team Ratings — μ − 2σ smoothed", fromYear, toYear)
 	} else {
 		driverRows, err := loadLatestDriverSmoothed(db)
 		if err != nil {
@@ -115,7 +115,7 @@ func cmdSVG(db *sql.DB, args []string) {
 				entries[i].lastPeriod = hist[len(hist)-1].Index
 			}
 		}
-		title = fmt.Sprintf("%d–%d F1 Driver Ratings — Rating − 2×RD smoothed", fromYear, toYear)
+		title = fmt.Sprintf("%d–%d F1 Driver Ratings — μ − 2σ smoothed", fromYear, toYear)
 	}
 
 	if err := writeSVG(*out, title, entries, histories, seasonStarts, seasonYears); err != nil {
@@ -124,9 +124,9 @@ func cmdSVG(db *sql.DB, args []string) {
 	_, _ = fmt.Fprintf(os.Stderr, "chart written to %s\n", *out)
 }
 
-// conservativeRating returns the Glicko-style conservative estimate: Rating − 2×RD.
-func conservativeRating(mu, sigma float64) float64 {
-	return float64(toRating(mu)) - 2*float64(toRD(sigma))
+// conservativeEstimate returns the conservative ability estimate: μ − 2σ.
+func conservativeEstimate(mu, sigma float64) float64 {
+	return mu - 2*sigma
 }
 
 func writeSVG(
@@ -171,7 +171,7 @@ func writeSVG(
 			if p.Index < e.firstPeriod || p.Index > e.lastPeriod {
 				continue
 			}
-			v := conservativeRating(p.Mu, p.Sigma)
+			v := conservativeEstimate(p.Mu, p.Sigma)
 			if v < yMin {
 				yMin = v
 			}
@@ -181,7 +181,7 @@ func writeSVG(
 		}
 	}
 	if yMin == math.MaxFloat64 {
-		yMin, yMax = 1300, 1700
+		yMin, yMax = -1, 1
 	}
 	pad := (yMax - yMin) * 0.06
 	yMin -= pad
@@ -216,15 +216,15 @@ func writeSVG(
 		y := yOf(t)
 		_, _ = fmt.Fprintf(w, `<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#ffffff" stroke-opacity="0.08"/>`+"\n",
 			marginL, y, marginL+plotW, y)
-		_, _ = fmt.Fprintf(w, `<text x="%d" y="%.1f" fill="#777777" font-size="11" text-anchor="end">%d</text>`+"\n",
-			marginL-6, y+4, int(math.Round(t)))
+		_, _ = fmt.Fprintf(w, `<text x="%d" y="%.1f" fill="#777777" font-size="11" text-anchor="end">%.4g</text>`+"\n",
+			marginL-6, y+4, t)
 	}
 
-	// 1500 baseline (average rating).
-	if yMin < 1500 && yMax > 1500 {
-		y1500 := yOf(1500)
+	// μ=0 baseline (average ability).
+	if yMin < 0 && yMax > 0 {
+		y0 := yOf(0)
 		_, _ = fmt.Fprintf(w, `<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#ffffff" stroke-opacity="0.25" stroke-dasharray="4,4"/>`+"\n",
-			marginL, y1500, marginL+plotW, y1500)
+			marginL, y0, marginL+plotW, y0)
 	}
 
 	// Season boundary lines + year labels.
@@ -236,7 +236,7 @@ func writeSVG(
 			x, marginT+plotH+20, seasonYears[i])
 	}
 
-	// Polylines — conservative Glicko estimate Rating − 2×RD.
+	// Polylines — conservative estimate μ − 2σ.
 	for i, e := range entries {
 		hist := histories[e.name]
 		if len(hist) == 0 {
@@ -251,7 +251,7 @@ func writeSVG(
 			if sb.Len() > 0 {
 				sb.WriteByte(' ')
 			}
-			_, _ = fmt.Fprintf(&sb, "%.1f,%.1f", xOf(p.Index), yOf(conservativeRating(p.Mu, p.Sigma)))
+			_, _ = fmt.Fprintf(&sb, "%.1f,%.1f", xOf(p.Index), yOf(conservativeEstimate(p.Mu, p.Sigma)))
 		}
 		if sb.Len() == 0 {
 			continue

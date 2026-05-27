@@ -15,8 +15,8 @@ func cmdTeams(db *sql.DB, args []string) {
 		fatalf("load team ratings: %v", err)
 	}
 
-	fmt.Printf(" %4s  %-25s  %6s  %4s\n", "Rank", "Team", "Rating", "RD")
+	fmt.Printf(" %4s  %-25s  %6s  %5s\n", "Rank", "Team", "μ", "σ")
 	for i, r := range rows {
-		fmt.Printf(" %4d  %-25s  %6d  %4d\n", i+1, r.name, toRating(r.mu), toRD(r.sigma))
+		fmt.Printf(" %4d  %-25s  %6.2f  %5.2f\n", i+1, r.name, r.mu, r.sigma)
 	}
 }

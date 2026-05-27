@@ -32,12 +32,11 @@ func cmdDrivers(db *sql.DB, args []string) {
 		top = top[:*n]
 	}
 
-	fmt.Printf(" %4s  %-25s  %-20s  %6s  %4s  %8s\n",
-		"Rank", "Driver", "Team", "Rating", "RD", "Δ vs Car")
+	fmt.Printf(" %4s  %-25s  %-20s  %6s  %5s  %8s\n",
+		"Rank", "Driver", "Team", "μ", "σ", "Δ vs Car")
 	for i, r := range top {
-		fmt.Printf(" %4d  %-25s  %-20s  %6d  %4d  %+8d\n",
+		fmt.Printf(" %4d  %-25s  %-20s  %6.2f  %5.2f  %+8.2f\n",
 			i+1, r.name, teamName[r.teamID],
-			toRating(r.mu), toRD(r.sigma),
-			toDelta(r.mu-teamMu[r.teamID]))
+			r.mu, r.sigma, r.mu-teamMu[r.teamID])
 	}
 }
