@@ -66,9 +66,6 @@ acknowledges that their ability may have changed while they were away.
 | `tau` | How quickly ability can change between periods. Lower is more stable; higher reacts faster to recent form. | `0.1` per race |
 | `sigma0` | How uncertain you are about a new competitor. Wider priors converge more slowly but avoid overreacting to early results. | `1.5` |
 
-Ratings are on a Glicko-compatible scale: μ=0 corresponds to 1500 and one
-unit is roughly 174 rating points.
-
 ## F1 driver ratings 2000–2026
 
 ![F1 Driver Ratings](docs/ratings.svg)
